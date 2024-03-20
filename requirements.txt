@@ -1,0 +1,6 @@
+rubpy
+khayyam
+gtts
+deep_translator 
+pillow
+googlesearch
