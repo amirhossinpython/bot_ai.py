@@ -6,3 +6,4 @@ pillow
 googlesearch
 aiortc
 phonenumbers
+googletrans 
