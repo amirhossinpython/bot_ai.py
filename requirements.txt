@@ -5,3 +5,4 @@ deep_translator
 pillow
 googlesearch
 aiortc
+phonenumbers
