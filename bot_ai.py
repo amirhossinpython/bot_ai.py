@@ -111,6 +111,10 @@ logo iran
 برای اینکه بفهمی کلماتت چقدره اینطوری:
 len:amir
 🔹 برای چت بات هوش مصنوعی لاما قبل هرمتن *بزارید
+برای چت باهوش مصنوعی برای سوال خود اینونه بنویسید:
+سوال سلام خوبی
+برای به دست اوردن اطلاعات شماره اینطوری :
+phone:+980933***
 🔹 برای چت باهوش مصنوعی دیگه هم میتونید از/استفاده کنید
 🔹 حالا میرسیم بخش دستورات گروهی:
 برای اجرای اهنگ راندم درویسکال بنویسید اهنگ 
@@ -1165,10 +1169,10 @@ def get_images(text):
 def chatgpt4(text):
     s = requests.Session()
     
-    chat = s.get(f"http://api-free.ir/api/bard.php?text={text}").json()["result"]
+    chat = s.get(f"https://api.chbk.run/chatgpt2?text={text}").json()["data"]
     return chat
     
-    
+
 
 def get_int(value: str):
     try:
@@ -1262,13 +1266,19 @@ def is_bug(update: Updates, result):
 
 @bot.on_message_updates(filters.is_group)
 async def updates(update: Updates):
+    text =update.text
+    
+    if text =="قنواتی":
+        await update.reply("بدون گوند")
+    elif text =="محمد":
+        await update.reply("بهتره بگید دختر چو ن اسمش سار هست")
+    
+        
 
-    # guid =update.object_guid
-    # text =update.text
+   
     
-    
-    
-    # if  guid in "u0GK6O10f42a5f2006c9e1fa9f4cf0ce":  # تنها برای guid مشخص
+    # if update.is_admin:
+
     #     if update.text:
     #         text = update.text.split("=")
     #         if len(text) == 2:
@@ -1277,44 +1287,21 @@ async def updates(update: Updates):
     #             knowledge_base[key] = value
     #             save_knowledge_base(knowledge_base)
     #             await update.reply("آموخته شد! تشکر")
-    #     elif text in knowledge_base:
-    #         await update.reply(knowledge_base[text])
-     
-   
-
-
-    
-    
-    
-    
-    # print(await bot.get_me())
-    
-    if update.is_admin:
-
-        if update.text:
-            text = update.text.split("=")
-            if len(text) == 2:
-                key = text[0].strip()
-                value = text[1].strip()
-                knowledge_base[key] = value
-                save_knowledge_base(knowledge_base)
-                await update.reply("آموخته شد! تشکر")
                 
                 
         
 
-@bot.on_message_updates(filters.is_group)
-def echo_learn(update: Updates):
+# @bot.on_message_updates(filters.is_group)
+# def echo_learn(update: Updates):
 
-    if update.is_admin:
+    # if update.is_admin:
         
-        if update.text:
-            text = update.text.strip()
-            if text in knowledge_base:
-                update.reply(knowledge_base[text])
+    #     if update.text:
+    #         text = update.text.strip()
+    #         if text in knowledge_base:
+    #             update.reply(knowledge_base[text])
 
 @bot.on_message_updates()
-
 def chatbot(update: Updates):
    
     
@@ -1367,7 +1354,6 @@ def chatbot(update: Updates):
    
         
 @bot.on_message_updates()
-
 def image_ai(update: Updates):
     
     guid =update.object_guid
@@ -1586,6 +1572,7 @@ def block(update: Updates):
     if update.text in fohs:
         
         update.block()
+    
         
 @bot.on_message_updates(filters.is_private)
 def animition(update: Updates):
@@ -2288,93 +2275,7 @@ def send_chanal(update: Updates) :
         
    
     
-    
-        
-@bot.on_message_updates()
-def rubino_post(update: Updates):
-    rb = Rubino(bot)
-    # bot.connect()
-    result = rb.get_profile_list()
-    print(result)
-   
-    
-    
-    if update.text.startswith("ارسال"):
-        
-        
-        input_ =update.text.replace("ارسال","")
-        update.reply("منتظر ارسال عکس به روبینو باشید")
-        
-        try:
-            
-            response = requests.get(f"http://api-free.ir/api/img.php?v=4&text={input_}")
-            response.raise_for_status()
-                
-            data = response.json()
-            result = data["result"]
-            
-            # انتخاب یک عنصر تصادفی از لیست result
-            random_link = random.choice(result)
-            
-            response = requests.get(random_link, stream=True)
-            response.raise_for_status()
-            
-            with open("image_ai.jpg", "wb") as out_file:
-                
-                
-                
-                
-                update.reply("به زودی ارسال میشه")
-                shutil.copyfileobj(response.raw, out_file)
-                # bot.send_photo(guid,'downloaded_image.jpg',reply_to_message_id=msg,caption="تصویرشمااماده شد عزیز:\n@python_code_1384")
-                rb.add_picture("660bd3a83b775005919f7cda","image_ai.jpg","عکس از هوش مصنوعی \n https://t.me/pythonsource1384")
-                
-                update.reply("ارسال شد")
-                
-               
-                
-                
-                
-                
-        except requests.exceptions.RequestException as e:
-            
-            
-            update.reply(f"erorr:{e}")
-    
-    elif update.text.startswith("بفرست"):
-        
-        update.reply("منتظر ارسال عکس باشید")
-        input_text =update.text.replace("بفرست","")
-        try:
-            response = requests.get(f"http://api-free.ir/api/img.php?text={input_text}&v=3.5")
-            response.raise_for_status()
-                
-            data = response.json()
-            result = data["result"]
-            
-            # انتخاب یک عنصر تصادفی از لیست result
-            random_link = random.choice(result)
-            
-            response = requests.get(random_link, stream=True)
-            response.raise_for_status()
-            
-            
-            with open("image_ai.jpg", "wb") as out_file:
-                
-                update.reply("به زودی ارسال میشه")
-                shutil.copyfileobj(response.raw, out_file)
-                # bot.send_photo(guid,'downloaded_image.jpg',reply_to_message_id=msg,caption="تصویرشمااماده شد عزیز:\n@python_code_1384")
-                rb.add_picture("660bd3a83b775005919f7cda","image_ai.jpg","عکس از هوش مصنوعی \n https://t.me/pythonsource1384 \n@Python_Source_1403")
-               
-                
-                
-                
-                
-        except requests.exceptions.RequestException as e:
-            
-            
-            update.reply(f"erorr:{e}")
-            
+
         
 @bot.on_message_updates(filters.is_group, filters.Commands(['اخطار', 'اخطارر'], prefixes=''))
 def ban_user_by_admin(update: Updates):
@@ -2427,7 +2328,6 @@ def ban_user_by_admin(update: Updates):
     except Exception :
         update.reply("کاربر  ادمینه")
     # 
-    
     
     
     
