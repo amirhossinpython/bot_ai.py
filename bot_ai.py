@@ -20,6 +20,7 @@ from datetime import datetime
 import json
 import sqlite3
 import urllib.request
+from colorama import init, Fore, Style
 import re
 from rubpy.enums import ParseMode
 from PIL import Image
@@ -29,7 +30,14 @@ from time import strftime
 import khayyam
 import phonenumbers
 from phonenumbers import geocoder, carrier
+from PIL import Image, ImageDraw, ImageFont
+from moviepy.editor import ImageSequenceClip
+import numpy as np
+import random
 from googletrans import Translator
+from pydub import AudioSegment
+import speech_recognition as sr
+
 try:
     from deep_translator import GoogleTranslator
 except ImportError :
@@ -133,6 +141,7 @@ https://t.me/pythonsource1384
 @Python_Source_1403
 
 '''
+is_reporting = False
 def get_phone_number_info(phone_number):
     try:
       
@@ -971,6 +980,9 @@ list_bio = [
 "قاضی فقط خداست",
 
 ]
+photo_lock = False
+text_lock = False
+gif_lock =False
 list_bot = [
     "جان ربات",
     "بله بفرماید",
@@ -1143,7 +1155,18 @@ def gpt_4(text):
     s =requests.Session()
     chat=s.get(f"http://www.mahrez.iapp.ir/Gpt/?text={text}").json()["message"]
     return f"پاسخ شما :\n{chat}"
-
+def get_ai_response(text):
+    url = "http://api-free.ir/api/bard.php"
+    params = {'text': text}
+    try:
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("result_en", "I didn't understand that.")
+        else:
+            return "Error: Unable to reach AI service."
+    except requests.RequestException as e:
+        return f"Error: {str(e)}"
 def gpt_lama(text):
     s=requests.session()
         
@@ -1169,10 +1192,10 @@ def get_images(text):
 def chatgpt4(text):
     s = requests.Session()
     
-    chat = s.get(f"https://api.chbk.run/chatgpt2?text={text}").json()["data"]
+    chat = s.get(f"http://api-free.ir/api/bard.php?text={text}").json()["result"]
     return chat
     
-
+    
 
 def get_int(value: str):
     try:
@@ -1217,6 +1240,19 @@ def download_and_save_music(file_path, music_link):
 def gpt3_(text):
     gpt =requests.get(f"https://api4.haji-api.ir/api/ai/ChatGPT/3/?text={text}").json()["result"]
     return f"پاسخ :\n{gpt}"
+def recognize_speech_from_voice(file_path):
+    recognizer = sr.Recognizer()
+    audio = AudioSegment.from_file(file_path)
+    audio.export("file.wav", format="wav")
+    with sr.AudioFile("file.wav") as source:
+        audio_data = recognizer.record(source)
+        try:
+            text = recognizer.recognize_google(audio_data)
+            return text
+        except sr.UnknownValueError:
+            return "Sorry, I could not understand the audio."
+        except sr.RequestError:
+            return "Sorry, my speech service is down."
 def is_prime(num):
     if num <= 1:
         return False
@@ -1263,18 +1299,45 @@ def is_bug(update: Updates, result):
 
     except AttributeError:
         pass
+def get_random_color():
+    return tuple(random.randint(0, 255) for _ in range(3))
 
+def create_image_from_text(text, font_path="arial.ttf", font_size=40, image_size=(500, 500)):
+    bg_color = get_random_color()
+    text_color = get_random_color()
+    font = ImageFont.truetype(font_path, font_size)
+    image = Image.new('RGB', image_size, color=bg_color)
+    draw = ImageDraw.Draw(image)
+    
+    text_width, text_height = draw.textsize(text, font=font)
+    text_x = (image_size[0] - text_width) // 2
+    text_y = (image_size[1] - text_height) // 2
+    draw.text((text_x, text_y), text, fill=text_color, font=font)
+    
+    return image
+
+def create_mp4_from_text(text, output_mp4_path, duration=2, font_path="arial.ttf", font_size=40, image_size=(500, 500)):
+  
+    images = []
+    for _ in range(int(duration * 10)):
+        image = create_image_from_text(text, font_path, font_size, image_size)
+        image_np = np.array(image)
+        images.append(image_np)
+    
+    
+    clip = ImageSequenceClip(images, fps=10)
+    clip.write_videofile(output_mp4_path, fps=10)
 @bot.on_message_updates(filters.is_group)
 async def updates(update: Updates):
     text =update.text
+    if text=="سازنده":
+        await update.reply("id :\n@Sepah_cyber77")
     
-    if text =="قنواتی":
-        await update.reply("بدون گوند")
-    elif text =="محمد":
-        await update.reply("بهتره بگید دختر چو ن اسمش سار هست")
     
+   
+   
         
-
+   
    
     
     # if update.is_admin:
@@ -1294,12 +1357,12 @@ async def updates(update: Updates):
 # @bot.on_message_updates(filters.is_group)
 # def echo_learn(update: Updates):
 
-    # if update.is_admin:
+#     if update.is_admin:
         
-    #     if update.text:
-    #         text = update.text.strip()
-    #         if text in knowledge_base:
-    #             update.reply(knowledge_base[text])
+#         if update.text:
+#             text = update.text.strip()
+#             if text in knowledge_base:
+#                 update.reply(knowledge_base[text])
 
 @bot.on_message_updates()
 def chatbot(update: Updates):
@@ -1321,14 +1384,6 @@ def chatbot(update: Updates):
         except Exception as lam:
             
             update.reply(f"erorr:{lam}")
-    elif update.text.startswith("/"):
-        g =update.text.replace("/","")
-        update.reply("منتظربمانید")
-        re=gpt3_(g)
-        try:
-            update.reply(re)
-        except Exception as s3:
-         update.reply(f"erorr:\n {s3}")
     elif update.text.startswith("سوال"):
         sal =update.text.replace("سوال","")
         g =chatgpt4(sal)
@@ -1343,16 +1398,141 @@ def chatbot(update: Updates):
    
         
         
-         
+        
+@bot.on_message_updates()
+def game_P(update: Updates):
+    persian_to_english = {
+        "سنگ": "rock",
+        "کاغذ": "paper",
+        "قیچی": "scissors"
+    }
+
+    english_to_persian = {
+        "rock": "سنگ",
+        "paper": "کاغذ",
+        "scissors": "قیچی",
+        "win": "برد",
+        "lose": "باخت",
+        "draw": "مساوی"
+    }
+
+    user_input_persian = update.text.replace("بازی:", "").strip()
+
+    if update.text.startswith("بازی:"):
+        update.reply("منتظربمانید")
+        
+        user_input_english = persian_to_english.get(user_input_persian, None)
+        
+        if user_input_english:
+            response = requests.get(f"https://paper-scissors.liara.run/game?choice={user_input_english}")
             
-          
+            if response.status_code == 200:
+                data = response.json()
+
+                translated_response = {
+                    "computer_choice": english_to_persian[data["computer_choice"]],
+                    "result": english_to_persian[data["result"]],
+                    "user_choice": english_to_persian[data["user_choice"]]
+                }
+                
+                update.reply(
+                    f"انتخاب کامپیوتر: {translated_response['computer_choice']} \n"
+                    f"نتیجه: {translated_response['result']} \n"
+                    f"انتخاب کاربر: {translated_response['user_choice']} \n"
+                )
+                
+                if translated_response['result'] == "برد":
+                    update.reply("شما برنده شدید!")
+                elif translated_response['result'] == "باخت":
+                    update.reply('شما باختید.')
+                elif translated_response['result'] == "مساوی":
+                    update.reply("مساوی شدید")
+        else:
+            update.reply("انتخاب نامعتبر است. لطفا یکی از گزینه‌های 'سنگ', 'کاغذ', 'قیچی' را وارد کنید.")
+
     
 
-
-
+          
+    
+@bot.on_message_updates(filters.Commands(["قفل_عکس", "باز_کردن_عکس","باز_کردن_متن","قفل_متن","قفل_گیف","باز_کردن_گیف"]))
+def toggle_locks(update: Updates):
+    global photo_lock
+    if update.text == "/قفل_عکس":
+        photo_lock = True
+        update.reply("قفل عکس فعال شد. عکس‌ها پاک خواهند شد.")
+    elif update.text == "/باز_کردن_عکس":
+        photo_lock = False
+        update.reply("قفل عکس غیرفعال شد. عکس‌ها پاک نخواهند شد.")
+    elif update.text == "/قفل_متن":
         
+        text_lock = True
+        update.reply("قفل متن فعال شد. پیام‌های متنی پاک خواهند شد.")
+    elif update.text == "/باز_کردن_متن":
+        text_lock = False
+        update.reply("قفل متن غیرفعال شد. پیام‌های متنی پاک نخواهند شد.")
+    elif update.text =="/قفل_گیف":
+        gif_lock =True
+        update.reply("قفل گیف فعال شد .گیف هاپاک خواهند شد")
+    elif update.text=="/باز_کردن_گیف":
+        gif_lock=False
+        update.reply("قفل گیف باز شد شما مجازیدبه گیف بفرستید")       
+         
+        
+
+
+@bot.on_message_updates(filters.photo)
+def handle_photo_message(update: Updates):
+    global photo_lock
+    if photo_lock:
+        # حذف پیام عکس
+        update.delete()
+        # ارسال پیام اطلاع‌رسانی
+        update.reply("عکس‌ها در حال حاضر قفل هستند و پاک شدند.")
+
+@bot.on_message_updates(filters.text)
+def handle_text_message(update: Updates):
+    global text_lock
+    if text_lock:
+        # حذف پیام متنی
+        update.delete_messages()
+        # ارسال پیام اطلاع‌رسانی
+        update.reply("پیام‌های متنی در حال حاضر قفل هستند و پاک شدند.")
+
+
+    
    
+
+@bot.on_message_updates(filters.gif)
+def handle_gif_message(update: Updates):
+    global gif_lock
+    if gif_lock:
+        update.delete()
+        update.reply("پیام های حاوی گیف پاک میشوند")
         
+    
+    
+
+@bot.on_message_updates(filters.voice)
+def get_voice(update: Updates):
+    if hasattr(update, 'voice') and update.voice:
+        update.reply("در حال پردازش فایل صوتی...")
+        try:
+            voice = update.voice
+            file_path = bot.download(voice)
+            if isinstance(file_path, str) and os.path.exists(file_path):
+                text = recognize_speech_from_voice(file_path)
+                os.remove(file_path)  # حذف فایل موقت
+                if text:
+                    response = get_ai_response(text)
+                    update.reply(response)
+                else:
+                    update.reply("متاسفم، نتوانستم فایل صوتی را پردازش کنم.")
+            else:
+                update.reply("دانلود فایل صوتی با مشکل مواجه شد.")
+        except Exception as e:
+            update.reply(f"یک خطا رخ داد: {e}")
+    else:
+        update.reply("فایل صوتی یافت نشد.")
 @bot.on_message_updates()
 def image_ai(update: Updates):
     
@@ -1501,12 +1681,98 @@ def voice_ai(update: Updates):
             update.reply(f"erorr :\n {v}")
     elif update.text.startswith("voice"):
         text = update.text.replace("voice", "").strip()
+        languages = {
+    'af': 'Afrikaans',
+    'ar': 'Arabic',
+    'bn': 'Bengali',
+    'bs': 'Bosnian',
+    'ca': 'Catalan',
+    'cs': 'Czech',
+    'cy': 'Welsh',
+    'da': 'Danish',
+    'de': 'German',
+    'el': 'Greek',
+    'en-au': 'English (Australia)',
+    'en-ca': 'English (Canada)',
+    'en-gb': 'English (UK)',
+    'en-gh': 'English (Ghana)',
+    'en-ie': 'English (Ireland)',
+    'en-in': 'English (India)',
+    'en-ng': 'English (Nigeria)',
+    'en-nz': 'English (New Zealand)',
+    'en-ph': 'English (Philippines)',
+    'en-tz': 'English (Tanzania)',
+    'en-uk': 'English (UK)',
+    'en-us': 'English (US)',
+    'en-za': 'English (South Africa)',
+    'en': 'English',
+    'eo': 'Esperanto',
+    'es-es': 'Spanish (Spain)',
+    'es-us': 'Spanish (United States)',
+    'es': 'Spanish',
+    'et': 'Estonian',
+    'fi': 'Finnish',
+    'fr-ca': 'French (Canada)',
+    'fr-fr': 'French (France)',
+    'fr': 'French',
+    'gu': 'Gujarati',
+    'hi': 'Hindi',
+    'hr': 'Croatian',
+    'hu': 'Hungarian',
+    'id': 'Indonesian',
+    'is': 'Icelandic',
+    'it': 'Italian',
+    'ja': 'Japanese',
+    'jw': 'Javanese',
+    'km': 'Khmer',
+    'kn': 'Kannada',
+    'ko': 'Korean',
+    'la': 'Latin',
+    'lv': 'Latvian',
+    'mk': 'Macedonian',
+    'ml': 'Malayalam',
+    'mr': 'Marathi',
+    'my': 'Myanmar (Burmese)',
+    'ne': 'Nepali',
+    'nl': 'Dutch',
+    'no': 'Norwegian',
+    'pl': 'Polish',
+    'pt-br': 'Portuguese (Brazil)',
+    'pt-pt': 'Portuguese (Portugal)',
+    'pt': 'Portuguese',
+    'ro': 'Romanian',
+    'ru': 'Russian',
+    'si': 'Sinhala',
+    'sk': 'Slovak',
+    'sq': 'Albanian',
+    'sr': 'Serbian',
+    'su': 'Sundanese',
+    'sv': 'Swedish',
+    'sw': 'Swahili',
+    'ta': 'Tamil',
+    'te': 'Telugu',
+    'th': 'Thai',
+    'tl': 'Filipino',
+    'tr': 'Turkish',
+    'uk': 'Ukrainian',
+    'ur': 'Urdu',
+    'vi': 'Vietnamese',
+    'zh-cn': 'Chinese (Mandarin/China)',
+    'zh-tw': 'Chinese (Mandarin/Taiwan)'
+}
         
         update.reply("loading..")
         
-        tts = gTTS(text)
-        tts.save("responsee.mp3")
-        update.reply_voice("responsee.mp3",caption="ویس انگلیسی شما اماده شد \nhttps://t.me/pythonsource1384")
+        
+        output_file = "responsee.mp3"
+        selected_language = random.choice(list(languages.keys()))
+        language_name = languages[selected_language]
+        
+        speech = gTTS(text=text, lang=selected_language, slow=False)
+        speech.save(output_file)
+        update.reply_voice("responsee.mp3",caption=f"زبان انتخاب شده: {language_name}")
+        
+    
 
 @bot.on_message_updates()
 def order_list(update: Updates) :
@@ -1573,6 +1839,7 @@ def block(update: Updates):
         
         update.block()
     
+
         
 @bot.on_message_updates(filters.is_private)
 def animition(update: Updates):
@@ -1607,6 +1874,15 @@ def animition(update: Updates):
             
             
             bot.edit_message(guid, ss['message_update']['message_id'], sti)
+    elif update.text =="اسم":
+        list_namne =["a","m","i","r","h","s","s","i","n"]
+        ss=update.reply("name")
+        for name in list_namne:
+            bot.edit_message(guid, ss['message_update']['message_id'], name)
+            
+    
+            
+    
             
             
     
@@ -1629,8 +1905,79 @@ def animition(update: Updates):
     #     ss = await message.reply('start')
     #             for ani in Dans:
     #                 await client.edit_message(guid, ss['message_update']['message_id'], ani)
-    
 
+@bot.on_message_updates()
+async def report_user(update: Updates):
+    
+    list_report =[
+        "SPAM",
+        "obscene",
+        "violence",
+        "Fraud and fraud",
+        "child abuse",
+        "Copyright infringement",
+        
+        
+        
+    ]
+    if update.text.startswith("گزارش:"):
+        if is_reporting:
+            await update.reply("گزارش‌دهی در حال انجام است. لطفاً صبر کنید.")
+            return
+        is_reporting = True
+        await update.reply("گزارش‌دهی آغاز شد.")
+        
+        
+            
+            
+    
+    # گزارشات به طور راندم
+        res=random.choice(list_report)
+        object_guid =update.text.replace("گزارش:","")
+        # محل گذاشتن گوید کاربر
+        
+        print(f"target : {object_guid}")
+        
+        report_type =res
+        # متغییر توضحیات برای سایر گزارشات
+        description ="""
+        Hello, this user has insulted the sanctities and religion of Islam, spreads rumors against the system of the Islamic Republic of Iran, and promotes prostitution and corruption in cyberspace.
+        """
+        
+        # نوع شناسه گزارشی که میخواید بدید
+        report_type_object="User"
+        count = 0
+        
+        
+        #در حلقه تکرار شروع به گزارش زدن میکند وگزارشات را میشمارد 
+    
+            
+            
+        
+        while is_reporting :
+            
+            
+            try:
+                try:
+                    
+                    
+                    result =bot.report_object(object_guid=object_guid,report_type=report_type,report_type_object=report_type_object,description=description)
+                    count += 1
+                    # 5ثانیه تاخییر در گزارش
+                    time.sleep(8)
+                    print(f"Report {count}: {res}")
+                    await update.reply(f"Report {count}: {res}")
+                    
+                except exceptions.InvalidInpu as inv:
+                    
+                    print(inv)
+            except Exception as er:
+                print(er)
+                break
+        is_reporting = False
+        await updates.reply("گزارش‌دهی متوقف شد.")
+            
+                    
        
 @bot.on_message_updates()
 def jok(update: Updates):
@@ -1655,6 +2002,9 @@ def  name(update: Updates):
         update.reply(r)
     except Exception as n:
         update.reply(n)
+
+
+        
 
         
 @bot.on_message_updates()
@@ -1823,6 +2173,8 @@ def len_chr(update: Updates):
         update.reply(f"طول متن: {length}")
 
 
+
+
 @bot.on_message_updates()
 def anime(update: Updates):
     image_link = update.text.replace("anime", "").strip()
@@ -1865,12 +2217,28 @@ def anime(update: Updates):
     
    
 
+        # filters.is_channel
+
         
-
-
+@bot.on_message_updates()
+def send_gordan_chanal(update: Updates):
+    guid_gordan ="g0D1GOw0dd1d74d8427382d0c59b78dc"
+    
+    if update.text.startswith("گردان"):
+        g =update.text.replace("گردان","")
+        update.reply("درحال ارسال به گردان")
+        try:
             
-
-
+            
+            result =chatgpt4(g)
+            bot.send_message(guid_gordan,f"پاسخ شما:{result}")
+            
+        except Exception as g:
+            print(g)
+  
+            
+        
+   
         
 @bot.on_message_updates()
 def reverse_text(update: Updates):
@@ -1976,7 +2344,18 @@ def user_info_(update: Updates):
           
     #     except requests.exceptions.RequestException as e:
     #         update.reply(f"خطا در دریافت تصویر: {e}")
-      
+
+@bot.on_message_updates()   
+def gif_text(update: Updates):
+    if update.text.startswith("text:"):
+        text = update.text.replace("text:","")
+        update.reply("منتظربمانید تاگیف ساخته بشه")
+        output_mp4_path = "output.mp4"
+        create_mp4_from_text(text, output_mp4_path)
+        with open(output_mp4_path,"rb")as video:
+            update.reply_gif("output.mp4",caption="متن شما تبدیل به گیف شد")
+    
+    
 
 @bot.on_message_updates()
 def send_gif(update: Updates):
@@ -2015,26 +2394,38 @@ def chistan(update: Updates):
         
         
     
-    
+    # https://check-host.net/check-report/1b96ddb7k379
 
 
 @bot.on_message_updates(filters.is_group)
 def voice_chat_player_gruop(update: Updates):
-    guid="g0DtNHM0f4a499111d7bd4b228db6d7e"
-    if update.text=="اهنگ" or update.text=="آهنگ":
-        update.reply("منتظردانلوداهنگ وپخش درویسکال باشید")
-        random_music_link = get_random_music_link()
-        try:
-            if random_music_link:
+    songs_directory = './voice_chat_player_gruop/'
+    songs = []
+    for filename in os.listdir(songs_directory):
+        if filename.endswith(".mp3"):
             
-                update.reply(f"لینک دانلود موزیک تصادفی: \n{random_music_link}")
-                music_file_name = "random_music.mp3"
-                download_and_save_music(music_file_name, random_music_link)
-                with open(music_file_name, 'rb') as music_file:
-                    
-                    bot.voice_chat_player(guid,'random_music.mp3')
-        except Exception as h:
-            update.reply(f"erorr\n{h}")
+            songs.append(os.path.join(songs_directory, filename))
+    
+            
+
+    guid=update.object_guid
+    if update.text=="اهنگ" or update.text=="آهنگ":
+        
+        update.reply("منتظردانلوداهنگ وپخش درویسکال باشید")
+        if songs:
+            
+            song = random.choice(songs)
+            
+            
+            with open(song, 'rb') as audio_file:
+                bot.voice_chat_player(guid,str(song))
+                
+                
+                
+        
+        else:
+            update.message.reply_text("متاسفانه هیچ آهنگی یافت نشد.")
+     
     elif update.text.startswith("موزیک"):
         update.reply("منتظر سرچ اهنگ واجرای آن درویسکال باشید")
         query = update.text.replace("موزیک","")
@@ -2327,24 +2718,7 @@ def ban_user_by_admin(update: Updates):
             update.reply("کاربر  ادمینه")
     except Exception :
         update.reply("کاربر  ادمینه")
-    # 
-    
-    
-    
-    
-    # print(rb)"gshhymsgdaitgehzpwnbzttrzswcejhf"
-   
-
-    
-    # rb.add_picture()
-    
-    
-    
-
-# rb = Rubino(bot)
-
-
-
+ 
 
 
 
